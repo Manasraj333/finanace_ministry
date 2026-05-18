@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { getPublicMetrics } from "@/lib/db/metrics"
 
-export const revalidate = 3600
+export const revalidate = 0
 
 export default async function PublicDashboard() {
     const publicData = await getPublicMetrics()
