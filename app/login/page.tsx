@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 
 // Simple mock login since full Auth UI wasn't the main task but is needed for flow
 export default function LoginPage() {
-    const [email, setEmail] = useState("")
+    const [identifier, setIdentifier] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const router = useRouter()
@@ -21,7 +21,7 @@ export default function LoginPage() {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ identifier, password })
             })
 
             const data = await res.json()
@@ -62,10 +62,10 @@ export default function LoginPage() {
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <Input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            type="text"
+                            placeholder="Email, Phone Number, or Aadhaar"
+                            value={identifier}
+                            onChange={(e) => setIdentifier(e.target.value)}
                             required
                         />
                         <Input
@@ -83,6 +83,7 @@ export default function LoginPage() {
                         <div className="text-xs text-muted-foreground">
                             <p>Demo Citizen:</p>
                             <p>citizen@gmail.com / password123</p>
+                            <p>Or try Phone / Aadhaar if registered.</p>
                         </div>
                         <div className="border-t pt-2">
                             <a href="/staff-login" className="text-xs text-muted-foreground hover:text-primary transition-colors">

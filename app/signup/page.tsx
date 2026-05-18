@@ -11,6 +11,8 @@ export default function SignupPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [fullName, setFullName] = useState("")
+    const [phoneNumber, setPhoneNumber] = useState("")
+    const [aadhaarNumber, setAadhaarNumber] = useState("")
     const [loading, setLoading] = useState(false)
     const router = useRouter()
 
@@ -22,7 +24,13 @@ export default function SignupPage() {
             const res = await fetch('/api/auth/signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, full_name: fullName })
+                body: JSON.stringify({ 
+                    email, 
+                    password, 
+                    full_name: fullName,
+                    phone_number: phoneNumber,
+                    aadhaar_number: aadhaarNumber
+                })
             })
 
             const data = await res.json()
@@ -72,6 +80,28 @@ export default function SignupPage() {
                                 placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Phone Number</Label>
+                            <Input
+                                type="tel"
+                                placeholder="10-digit mobile number"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                pattern="[0-9]{10}"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Aadhaar Number</Label>
+                            <Input
+                                type="text"
+                                placeholder="12-digit Aadhaar number"
+                                value={aadhaarNumber}
+                                onChange={(e) => setAadhaarNumber(e.target.value)}
+                                pattern="[0-9]{12}"
                                 required
                             />
                         </div>

@@ -5,20 +5,40 @@ import { createSession } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
     try {
-        const { email, password, full_name, role } = await request.json()
+        const { email, password, full_name, role, aadhaar_number, phone_number } = await request.json()
 
-        if (!email || !password) {
-            return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+        if (!email || !password || !aadhaar_number || !phone_number) {
+            return NextResponse.json({ error: 'Email, password, Aadhaar number, and phone number are required' }, { status: 400 })
+        }
+
+        // Basic validation
+        if (aadhaar_number.length !== 12 || !/^\d+$/.test(aadhaar_number)) {
+            return NextResponse.json({ error: 'Aadhaar number must be a 12-digit number' }, { status: 400 })
+        }
+        if (phone_number.length < 10 || !/^\d+$/.test(phone_number)) {
+            return NextResponse.json({ error: 'Invalid phone number format' }, { status: 400 })
         }
 
         const client = await clientPromise
         const db = client.db()
         const usersCollection = db.collection('users')
 
-        // Check if user exists
-        const existingUser = await usersCollection.findOne({ email })
+        // Check if user exists by email, aadhaar or phone
+        const existingUser = await usersCollection.findOne({
+            $or: [
+                { email },
+                { aadhaar_number },
+                { phone_number }
+            ]
+        })
+        
         if (existingUser) {
-            return NextResponse.json({ error: 'User already exists' }, { status: 400 })
+            let conflictField = 'User'
+            if (existingUser.email === email) conflictField = 'Email'
+            else if (existingUser.aadhaar_number === aadhaar_number) conflictField = 'Aadhaar number'
+            else if (existingUser.phone_number === phone_number) conflictField = 'Phone number'
+            
+            return NextResponse.json({ error: `${conflictField} already exists` }, { status: 400 })
         }
 
         // Hash password
@@ -29,6 +49,8 @@ export async function POST(request: NextRequest) {
             email,
             password: hashedPassword,
             full_name: full_name || '',
+            aadhaar_number,
+            phone_number,
             role: role || 'public_user',
             is_active: true,
             updated_at: new Date().toISOString(),

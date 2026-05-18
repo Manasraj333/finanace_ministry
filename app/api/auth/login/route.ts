@@ -5,18 +5,25 @@ import { createSession } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
     try {
-        const { email, password } = await request.json()
+        const { identifier, password } = await request.json()
 
-        if (!email || !password) {
-            return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+        if (!identifier || !password) {
+            return NextResponse.json({ error: 'Identifier (Email, Phone, or Aadhaar) and password are required' }, { status: 400 })
         }
 
         const client = await clientPromise
         const db = client.db()
         const usersCollection = db.collection('users')
 
-        // Find user
-        const user = await usersCollection.findOne({ email })
+        // Find user by email, phone, or aadhaar
+        const user = await usersCollection.findOne({
+            $or: [
+                { email: identifier },
+                { phone_number: identifier },
+                { aadhaar_number: identifier }
+            ]
+        })
+        
         if (!user) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
         }
