@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 
 // Simple mock login since full Auth UI wasn't the main task but is needed for flow
 export default function LoginPage() {
-    const [identifier, setIdentifier] = useState("")
+    const [email, setEmail] = useState("")
+    const [phoneNumber, setPhoneNumber] = useState("")
+    const [aadhaarNumber, setAadhaarNumber] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const router = useRouter()
@@ -21,7 +23,7 @@ export default function LoginPage() {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ identifier, password })
+                body: JSON.stringify({ email, phone_number: phoneNumber, aadhaar_number: aadhaarNumber, password })
             })
 
             const data = await res.json()
@@ -62,10 +64,24 @@ export default function LoginPage() {
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <Input
+                            type="email"
+                            placeholder="Email Address"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                        <Input
+                            type="tel"
+                            placeholder="Phone Number (10 digits)"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            required
+                        />
+                        <Input
                             type="text"
-                            placeholder="Email, Phone Number, or Aadhaar"
-                            value={identifier}
-                            onChange={(e) => setIdentifier(e.target.value)}
+                            placeholder="Aadhaar Number (12 digits)"
+                            value={aadhaarNumber}
+                            onChange={(e) => setAadhaarNumber(e.target.value)}
                             required
                         />
                         <Input
@@ -82,8 +98,7 @@ export default function LoginPage() {
                     <div className="mt-4 text-center space-y-2">
                         <div className="text-xs text-muted-foreground">
                             <p>Demo Citizen:</p>
-                            <p>citizen@gmail.com / password123</p>
-                            <p>Or try Phone / Aadhaar if registered.</p>
+                            <p>citizen@gmail.com / 9876543210 / 123456789012</p>
                         </div>
                         <div className="border-t pt-2">
                             <a href="/staff-login" className="text-xs text-muted-foreground hover:text-primary transition-colors">

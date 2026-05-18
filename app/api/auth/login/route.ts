@@ -5,33 +5,33 @@ import { createSession } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
     try {
-        const { identifier, password } = await request.json()
+        const { email, phone_number, aadhaar_number, password } = await request.json()
 
-        if (!identifier || !password) {
-            return NextResponse.json({ error: 'Identifier (Email, Phone, or Aadhaar) and password are required' }, { status: 400 })
+        if (!email || !phone_number || !aadhaar_number || !password) {
+            return NextResponse.json({ error: 'Email, Phone Number, Aadhaar Number, and Password are all required to login' }, { status: 400 })
         }
 
         const client = await clientPromise
         const db = client.db()
         const usersCollection = db.collection('users')
 
-        // Find user by email, phone, or aadhaar
+        // Find user by strictly matching all three identifiers
         const user = await usersCollection.findOne({
-            $or: [
-                { email: identifier },
-                { phone_number: identifier },
-                { aadhaar_number: identifier }
+            $and: [
+                { email },
+                { phone_number },
+                { aadhaar_number }
             ]
         })
         
         if (!user) {
-            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+            return NextResponse.json({ error: 'Invalid credentials. User not found matching these details.' }, { status: 401 })
         }
 
         // Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password)
         if (!isPasswordValid) {
-            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+            return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
         }
 
         // Create session cookie
