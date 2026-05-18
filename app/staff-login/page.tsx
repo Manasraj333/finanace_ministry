@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -14,44 +13,47 @@ export default function StaffLoginPage() {
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const router = useRouter()
-    const supabase = createClient()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            })
 
-        if (error) {
-            alert(error.message)
-            setLoading(false)
-            return
-        }
+            const data = await res.json()
 
-        // Check role and redirect
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-            const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single()
-
-            if (profile) {
-                if (['admin', 'super_admin'].includes(profile.role)) {
-                    router.push("/admin")
-                } else {
-                    router.push("/analyst/applications")
-                }
+            if (!res.ok) {
+                alert(data.error || 'Authentication failed')
             } else {
-                router.push("/")
+                // Check role and redirect
+                const role = data.role
+                if (['admin', 'super_admin'].includes(role)) {
+                    router.push("/admin")
+                } else if (role === 'analyst') {
+                    router.push("/analyst/applications")
+                } else {
+                    // Not a staff member
+                    alert("Unauthorized access. Staff roles only.")
+                    fetch('/api/auth/logout', { method: 'POST' })
+                    router.push("/login")
+                    return
+                }
+
+                setTimeout(() => {
+                    router.refresh()
+                    window.location.reload()
+                }, 100)
             }
+        } catch (error) {
+            alert('Network error')
+        } finally {
+            setLoading(false)
         }
-        router.refresh()
-        setLoading(false)
     }
 
     return (

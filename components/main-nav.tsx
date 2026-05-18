@@ -6,16 +6,14 @@ import { useAuth } from "@/components/auth-provider"
 import { hasRole, ROLES, UserRole } from "@/lib/auth/rbac"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/client"
 import { LogOut } from "lucide-react"
 
 export function MainNav() {
     const pathname = usePathname()
     const { user, role, isLoading } = useAuth()
-    const supabase = createClient()
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut()
+        await fetch('/api/auth/logout', { method: 'POST' })
         window.location.href = '/'
     }
 

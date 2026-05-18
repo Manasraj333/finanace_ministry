@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -13,43 +12,44 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const router = useRouter()
-    const supabase = createClient()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
-        // Attempt sign in
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            })
 
-        if (error) {
-            alert(error.message)
-        } else {
-            // Check for profile to route correctly, but default to citizen home
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('user_profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single()
+            const data = await res.json()
 
-                if (profile && ['admin', 'super_admin', 'analyst'].includes(profile.role)) {
-                    // If staff logs in here by mistake, route them right
-                    if (profile.role === 'analyst') router.push("/analyst/applications")
-                    else router.push("/admin")
+            if (!res.ok) {
+                alert(data.error || 'Login failed')
+            } else {
+                // Route based on role returned from our MongoDB API
+                const role = data.role
+                if (['admin', 'super_admin'].includes(role)) {
+                    router.push("/admin")
+                } else if (role === 'analyst') {
+                    router.push("/analyst/applications")
                 } else {
                     router.push("/citizen/schemes")
                 }
-            } else {
-                router.push("/citizen/schemes")
+                
+                // Add a small delay then refresh to ensure context updates
+                setTimeout(() => {
+                    router.refresh()
+                    window.location.reload()
+                }, 100)
             }
-            router.refresh()
+        } catch (error) {
+            alert('Network error')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     return (

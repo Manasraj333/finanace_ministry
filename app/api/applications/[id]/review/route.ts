@@ -1,39 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { reviewApplication } from '@/lib/supabase/applications'
+import { reviewApplication } from '@/lib/db/applications'
+import { getSession } from '@/lib/session'
 
 export async function PATCH(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
-        const supabase = createClient()
+        const session = await getSession()
 
-        // Verify user is analyst or admin
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
+        if (!session) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
+        const role = session.role
 
-        console.log('Review API - User ID:', user.id)
-        console.log('Review API - User profile:', profile)
-
-        if (!profile || !['analyst', 'admin', 'super_admin'].includes(profile.role)) {
-            console.log('Review API - Access denied. Role:', profile?.role)
+        if (!['analyst', 'admin', 'super_admin'].includes(role)) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
 
         const body = await request.json()
         const newStatus = body.status
 
-        // RBAC Workflow Enforcement
-        if (profile.role === 'analyst') {
+        if (role === 'analyst') {
             if (newStatus === 'approved') {
                 return NextResponse.json(
                     { error: 'Analysts cannot grant final approval. Please select "Forward to Admin".' },
@@ -46,10 +35,6 @@ export async function PATCH(
                     { status: 400 }
                 )
             }
-        }
-
-        if (profile.role === 'admin' || profile.role === 'super_admin') {
-            // Admins can do anything, but they usually approve forwarded ones
         }
 
         const { success, error } = await reviewApplication({

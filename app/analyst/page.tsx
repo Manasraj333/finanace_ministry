@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendChart } from "@/components/dashboard/trend-chart"
@@ -6,44 +5,28 @@ import { InsightPanel } from "@/components/dashboard/insight-panel"
 import { KPICard } from "@/components/dashboard/kpi-card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, TrendingUp, AlertTriangle } from "lucide-react"
+import { getMetricsSince } from "@/lib/db/metrics"
+import { getRecentInsights } from "@/lib/db/insights"
+import { getForecasts } from "@/lib/db/forecasts"
 
-export const revalidate = 0 // Dynamic data
+export const revalidate = 0
 
 async function getDashboardData() {
-    const supabase = createClient()
+    const since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()
+    const metrics = await getMetricsSince(since)
+    const insights = await getRecentInsights(10)
+    const forecasts = await getForecasts()
 
-    // Fetch latest metrics
-    const { data: metrics } = await supabase
-        .from('financial_metrics')
-        .select('*')
-        .order('recorded_at', { ascending: true })
-        .gte('recorded_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()) // Last year
-
-    // Fetch latest insights
-    const { data: insights } = await supabase
-        .from('ai_insights')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10)
-
-    // Fetch forecast data (simulated join or separate query)
-    const { data: forecasts } = await supabase
-        .from('forecasts')
-        .select('*')
-        .order('forecast_date', { ascending: true })
-
-    // Process data for charts
-    const revenueData = metrics?.filter(m => (m.metric_category || m.metric_type) === 'revenue').map(m => ({
+    const revenueData = metrics.filter(m => (m.metric_category || m.metric_type) === 'revenue').map(m => ({
         date: m.recorded_at,
         value: m.value ?? m.metric_value ?? 0
-    })) || []
+    }))
 
-    const expenditureData = metrics?.filter(m => (m.metric_category || m.metric_type) === 'expenditure').map(m => ({
+    const expenditureData = metrics.filter(m => (m.metric_category || m.metric_type) === 'expenditure').map(m => ({
         date: m.recorded_at,
         value: m.value ?? m.metric_value ?? 0
-    })) || []
+    }))
 
-    // Calculate KPIs
     const totalRevenue = revenueData.reduce((acc, curr) => acc + Number(curr.value), 0)
     const totalExpenditure = expenditureData.reduce((acc, curr) => acc + Number(curr.value), 0)
     const deficit = totalRevenue - totalExpenditure
@@ -51,13 +34,13 @@ async function getDashboardData() {
     return {
         revenueData,
         expenditureData,
-        insights: insights || [],
+        insights,
         kpis: {
             revenue: totalRevenue,
             expenditure: totalExpenditure,
             deficit
         },
-        forecasts: forecasts || []
+        forecasts
     }
 }
 
@@ -66,7 +49,6 @@ export default async function AnalystDashboard() {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-500">
-            {/* KPI Section */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <KPICard
                     title="Total Revenue (YTD)"
@@ -125,7 +107,7 @@ export default async function AnalystDashboard() {
                         <div className="col-span-4">
                             <TrendChart
                                 title="Revenue vs Expenditure"
-                                data={data.revenueData} // Simplified: ideally merge rev/exp by date
+                                data={data.revenueData}
                                 type="area"
                                 color="#0f766e"
                             />

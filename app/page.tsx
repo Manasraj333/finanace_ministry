@@ -1,38 +1,18 @@
-import { createClient } from "@/lib/supabase/server"
 import { MetricCard } from "@/components/metric-card"
 import { TrendChart } from "@/components/trend-chart"
 import { Separator } from "@/components/ui/separator"
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
+import { getPublicMetrics } from "@/lib/db/metrics"
 
-export const revalidate = 3600 // Revalidate every hour
+export const revalidate = 3600
 
 export default async function PublicDashboard() {
-    const supabase = createClient()
-
-    // Fetch public financial metrics
-    const { data: metrics, error } = await supabase
-        .from('financial_metrics')
-        .select('*')
-        .order('recorded_at', { ascending: true })
-
-    if (error) {
-        console.error('Error fetching public metrics:', error)
-        return <div className="p-8 text-destructive">Failed to load public data. Please try again later.</div>
-    }
-
-    const publicData = metrics || []
-
-    // Process data for charts
-    // Group by metric_name to find unique metrics
+    const publicData = await getPublicMetrics()
     const uniqueMetrics = Array.from(new Set(publicData.map(m => m.metric_name)))
 
-    // Aggregate data for the main chart (group by date/fiscal_year)
-    // This is a simplified transformation for demo purposes. 
-    // In a real app, you might want more complex time-series alignment.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const chartData = publicData.reduce((acc: any[], curr) => {
-        // Determine a label (e.g., Fiscal Year + Quarter)
         const label = `FY${curr.fiscal_year} Q${curr.fiscal_quarter}`
 
         let existingPoint = acc.find(p => p.label === label)
@@ -44,9 +24,8 @@ export default async function PublicDashboard() {
         existingPoint[curr.metric_name] = curr.value ?? curr.metric_value ?? 0
         return acc
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }, []).sort((a: any, b: any) => a.label.localeCompare(b.label)) // Simple sort
+    }, []).sort((a: any, b: any) => a.label.localeCompare(b.label))
 
-    // Calculate latest values for KPI cards
     const kpis = uniqueMetrics.map(name => {
         const history = publicData.filter(d => d.metric_name === name).sort((a, b) =>
             new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
@@ -91,7 +70,7 @@ export default async function PublicDashboard() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {kpis.map((kpi: any) => (
+                {(kpis as any[]).map((kpi) => (
                     <MetricCard
                         key={kpi.name}
                         title={kpi.name}
@@ -115,8 +94,8 @@ export default async function PublicDashboard() {
                     data={chartData}
                     xAxisKey="label"
                     lines={uniqueMetrics.map((name, i) => ({
-                        key: name as string,
-                        color: `hsl(${210 + (i * 30)}, 70%, 50%)`  // Generate distinct blues/cyans
+                        key: name,
+                        color: `hsl(${210 + (i * 30)}, 70%, 50%)`
                     }))}
                 />
             </div>
@@ -125,7 +104,7 @@ export default async function PublicDashboard() {
                 <h3 className="font-semibold text-lg mb-2">Government Data Transparency</h3>
                 <p className="text-sm text-muted-foreground">
                     This dashboard displays official financial metrics approved for public release.
-                    The data is sourced directly from the Ministry&apos;s central database (`financial_metrics` table).
+                    Data is sourced from the Ministry&apos;s MongoDB datastore.
                 </p>
                 <div className="mt-4 flex gap-4">
                     <Link href="/login">

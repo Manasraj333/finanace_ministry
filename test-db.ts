@@ -1,17 +1,13 @@
-import { createClient } from './lib/supabase/server'
+import { getDb } from './lib/db/client'
 
 async function testConnection() {
-    const supabase = createClient()
     try {
-        const { data, error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true })
-        if (error) {
-            console.error('Database Connection Error:', error)
-            process.exit(1)
-        }
-        console.log('Database Connection Successful. Profile count access confirmed.')
+        const db = await getDb()
+        const count = await db.collection('users').countDocuments()
+        console.log(`MongoDB connection successful. Users collection has ${count} document(s).`)
         process.exit(0)
     } catch (err) {
-        console.error('Unexpected error during connection test:', err)
+        console.error('MongoDB connection error:', err)
         process.exit(1)
     }
 }

@@ -1,36 +1,25 @@
-import { createClient } from "@/lib/supabase/server"
 import { UserManagement } from "@/components/admin/user-management"
 import { SchemeManagement } from "@/components/admin/scheme-management"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getAllSchemes } from "@/lib/supabase/schemes"
+import { getAllSchemes } from "@/lib/db/schemes"
 import { ApplicationReview } from "@/components/analyst/application-review"
-import { getAllApplications } from "@/lib/supabase/applications"
-import { getActiveSchemes } from "@/lib/supabase/schemes"
+import { getAllApplications } from "@/lib/db/applications"
+import { getActiveSchemes } from "@/lib/db/schemes"
 import { updateUserRole, toggleUserActive, createUser } from "@/app/admin/actions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock } from "lucide-react"
+import { getAllUsers } from "@/lib/db/users"
 
 export const revalidate = 0
 
 async function getAdminData() {
-    const supabase = createClient()
-
-    // Fetch users
-    const { data: users } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-    // Fetch all schemes with stats
+    const users = await getAllUsers()
     const schemes = await getAllSchemes()
-
-    // Fetch applications for review
     const applications = await getAllApplications()
-    // Fetch scheme details for the review component
     const activeSchemes = await getActiveSchemes()
 
     return {
-        users: users || [],
+        users,
         schemes,
         applications,
         reviewSchemes: activeSchemes.map(s => ({ id: s.id, title: s.title }))

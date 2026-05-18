@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -14,33 +13,34 @@ export default function SignupPage() {
     const [fullName, setFullName] = useState("")
     const [loading, setLoading] = useState(false)
     const router = useRouter()
-    const supabase = createClient()
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
         try {
-            const { error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                    },
-                },
+            const res = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, full_name: fullName })
             })
 
-            if (error) {
-                alert(error.message)
+            const data = await res.json()
+
+            if (!res.ok) {
+                alert(data.error || 'Signup failed')
             } else {
-                alert("Account created! Please check your email/log in.")
-                // If triggers are working, profile is created. If not, it won't be.
-                router.push("/login")
+                alert("Account created successfully!")
+                // Route to schemes page since they are automatically logged in via cookie
+                router.push("/citizen/schemes")
+                
+                setTimeout(() => {
+                    router.refresh()
+                    window.location.reload()
+                }, 100)
             }
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "An error occurred"
-            alert(message)
+        } catch (err) {
+            alert('Network error')
         } finally {
             setLoading(false)
         }

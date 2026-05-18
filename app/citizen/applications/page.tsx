@@ -1,4 +1,4 @@
-import { getMyApplications } from "@/lib/supabase/applications"
+import { getMyApplications } from "@/lib/db/applications"
 import { MyApplicationsClient } from "./applications-client"
 
 export const revalidate = 0

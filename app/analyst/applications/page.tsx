@@ -1,7 +1,7 @@
-import { createClient } from "@/lib/supabase/server"
 import { ApplicationReview } from "@/components/analyst/application-review"
-import { getAllApplications } from "@/lib/supabase/applications"
-import { getActiveSchemes } from "@/lib/supabase/schemes"
+import { getAllApplications } from "@/lib/db/applications"
+import { getActiveSchemes } from "@/lib/db/schemes"
+import { getSession } from "@/lib/session"
 
 export const revalidate = 0
 
@@ -17,19 +17,8 @@ async function getApplicationData() {
 
 export default async function AnalystApplicationsPage() {
     const data = await getApplicationData()
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // Default to 'analyst' if not found, though middleware should catch this
-    let userRole = 'analyst'
-    if (user) {
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-        if (profile) userRole = profile.role
-    }
+    const session = await getSession()
+    const userRole = session?.role || 'analyst'
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-500">

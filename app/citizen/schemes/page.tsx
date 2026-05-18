@@ -1,4 +1,4 @@
-import { getActiveSchemes } from "@/lib/supabase/schemes"
+import { getActiveSchemes } from "@/lib/db/schemes"
 import { SchemesClient } from "./schemes-client"
 
 export const revalidate = 0
