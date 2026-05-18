@@ -67,7 +67,7 @@ export function SchemesClient({ schemes }: SchemesClientProps) {
     // Check eligibility
     const handleCheck = () => {
         const eligibilityResults = schemes.map(scheme => {
-            const criteria = scheme.eligibility_criteria.toLowerCase()
+            const criteria = JSON.stringify(scheme.eligibility_criteria || {}).toLowerCase()
             const reasons: string[] = []
             let eligible = true
 
@@ -173,7 +173,7 @@ export function SchemesClient({ schemes }: SchemesClientProps) {
 
             <div className="grid lg:grid-cols-4 gap-8">
                 {/* LEFT COLUMN: FILTERS / ELIGIBILITY FORM */}
-                <Card className="lg:col-span-1 h-fit sticky top-24">
+                <Card className="lg:col-span-1 h-fit sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
                     <CardHeader>
                         <CardTitle className="text-lg">Check Eligibility</CardTitle>
                         <CardDescription>Enter details to find matching schemes.</CardDescription>
@@ -298,7 +298,7 @@ export function SchemesClient({ schemes }: SchemesClientProps) {
                                             {/* Brief Benefits Preview */}
                                             <div className="flex gap-2 flex-wrap mb-4">
                                                 <Badge variant="secondary" className="font-normal truncate max-w-[250px]">
-                                                    {scheme.benefits_description.split('.')[0]}
+                                                    {scheme.benefits_description || 'View benefits'}
                                                 </Badge>
                                             </div>
 
@@ -344,14 +344,16 @@ export function SchemesClient({ schemes }: SchemesClientProps) {
                             <div className="space-y-6 py-4">
                                 <div>
                                     <h4 className="font-semibold text-lg mb-2">Key Benefits</h4>
-                                    <p className="text-muted-foreground">{detailScheme.benefits_description}</p>
+                                    <div className="text-muted-foreground whitespace-pre-wrap">
+                                        {detailScheme.benefits_description}
+                                    </div>
                                 </div>
 
                                 <div>
                                     <h4 className="font-semibold text-lg mb-2">Eligibility Criteria</h4>
-                                    <div className="bg-muted p-4 rounded text-sm font-medium leading-relaxed">
-                                        {detailScheme.eligibility_criteria}
-                                    </div>
+                                    <pre className="bg-muted p-4 rounded text-sm font-medium leading-relaxed whitespace-pre-wrap overflow-x-auto">
+                                        {JSON.stringify(detailScheme.eligibility_criteria, null, 2)}
+                                    </pre>
                                 </div>
                             </div>
 

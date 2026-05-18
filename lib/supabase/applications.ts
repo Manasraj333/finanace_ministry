@@ -6,6 +6,24 @@ import type {
     ReviewApplicationInput,
     ApplicationFilters
 } from '@/lib/types/schemes'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+
+// Admin client for privileged operations (bypasses RLS)
+function getAdminClient() {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) return null
+    
+    return createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        }
+    )
+}
 
 /**
  * Submit a new application (citizen only)
@@ -73,7 +91,7 @@ export async function getMyApplications(): Promise<ApplicationWithDetails[]> {
  * Get all applications (analyst/admin view)
  */
 export async function getAllApplications(filters?: ApplicationFilters): Promise<ApplicationWithDetails[]> {
-    const supabase = createClient()
+    const supabase = getAdminClient() || createClient()
 
     let query = supabase
         .from('scheme_applications')
@@ -91,7 +109,7 @@ export async function getAllApplications(filters?: ApplicationFilters): Promise<
         query = query.eq('status', filters.status)
     } else {
         // By default, show actionable statuses that exist in the database
-        query = query.in('status', ['pending', 'submitted', 'under_review', 'forwarded_to_admin', 'approved', 'rejected'])
+        query = query.in('status', ['pending', 'under_review', 'approved', 'rejected'])
     }
 
     if (filters?.from_date) {
